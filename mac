@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# To run this script: sh mac 2>&1 | tee ./mac.log
+
 # Welcome to the thoughtbot laptop script!
 # Be prepared to turn your laptop (or desktop, no haters here)
 # into an awesome development machine.
@@ -11,6 +13,7 @@ fancy_echo() {
   printf "\n$fmt\n" "$@"
 }
 
+# zshrc (interactive shell script configuration)
 append_to_zshrc() {
   local text="$1" zshrc
   local skip_new_line="${2:-0}"
@@ -58,14 +61,30 @@ else
   sudo chown -R "$LOGNAME:admin" "$HOMEBREW_PREFIX"
 fi
 
+update_shell() {
+  local shell_path;
+  shell_path="$(which zsh)"
+
+  fancy_echo "Changing your shell to zsh ..."
+  if ! grep "$shell_path" /etc/shells > /dev/null 2>&1 ; then
+    fancy_echo "Adding '$shell_path' to /etc/shells"
+    sudo sh -c "echo $shell_path >> /etc/shells"
+  fi
+  chsh -s "$shell_path"
+}
+
 case "$SHELL" in
-  */zsh) : ;;
+  */zsh)
+    if [ "$(which zsh)" != '/usr/local/bin/zsh' ] ; then
+      update_shell
+    fi
+    ;;
   *)
-    fancy_echo "Changing your shell to zsh ..."
-      chsh -s "$(which zsh)"
+    update_shell
     ;;
 esac
 
+# update local gem repo cache
 gem_install_or_update() {
   if gem list "$1" --installed > /dev/null; then
     gem update "$@"
@@ -75,6 +94,7 @@ gem_install_or_update() {
   fi
 }
 
+# install Homebrew
 if ! command -v brew >/dev/null; then
   fancy_echo "Installing Homebrew ..."
     curl -fsS \
@@ -88,13 +108,16 @@ if ! command -v brew >/dev/null; then
     export PATH="/usr/local/bin:$PATH"
 fi
 
-if brew list | grep -Fq brew-cask; then
-  fancy_echo "Uninstalling old Homebrew-Cask ..."
-  brew uninstall --force brew-cask
-fi
+# commented out because this threw a syntax exception
+#if brew list | grep -Fq brew-cask; then
+#  fancy_echo "Uninstalling old Homebrew-Cask ..."
+#  brew uninstall --force brew-cask
+#fi
 
+# Homebrew install script listing applications
 fancy_echo "Updating Homebrew formulae ..."
 brew update
+brew uninstall --force "imagemagick"
 brew bundle --file=- <<EOF
 tap "thoughtbot/formulae"
 tap "homebrew/services"
@@ -108,6 +131,7 @@ brew "reattach-to-user-namespace"
 brew "the_silver_searcher"
 brew "tmux"
 brew "vim"
+brew "watchman"
 brew "zsh"
 
 # Heroku
@@ -118,22 +142,29 @@ brew "parity"
 brew "hub"
 
 # Image manipulation
-brew "imagemagick"
+brew "imagemagick@6"
 
 # Testing
-brew "qt"
+brew "qt@5.5"
 
-# Programming languages
+# Programming languages and package managers
 brew "libyaml" # should come after openssl
 brew "node"
 brew "rbenv"
 brew "ruby-build"
+brew "yarn"
 
 # Databases
 brew "postgres", restart_service: true
 brew "redis", restart_service: true
 EOF
 
+# headless browser for testing
+fancy_echo "Symlink qmake binary to /usr/local/bin for Capybara Webkit..."
+brew unlink qt@5.5
+brew link --force qt@5.5
+
+# Ruby config
 fancy_echo "Configuring Ruby ..."
 find_latest_ruby() {
   rbenv install -l | grep -v - | tail -1 | sed -e 's/^ *//'
@@ -155,6 +186,7 @@ gem_install_or_update 'bundler'
 number_of_cores=$(sysctl -n hw.ncpu)
 bundle config --global jobs $((number_of_cores - 1))
 
+# local customizations script
 if [ -f "$HOME/.laptop.local" ]; then
   fancy_echo "Running your customizations from ~/.laptop.local ..."
   # shellcheck disable=SC1090
