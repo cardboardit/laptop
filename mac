@@ -187,6 +187,11 @@ gem_install_or_update 'bundler'
 number_of_cores=$(sysctl -n hw.ncpu)
 bundle config --global jobs $((number_of_cores - 1))
 
+# as an example, make a specific version of Ruby the installed version
+#RUBY_CONFIGURE_OPTS=--with-openssl-dir=/usr/local/opt/openssl rbenv install -s "2.2.2"
+#rbenv global "2.2.2"
+#rbenv shell "2.2.2"
+
 # local customizations script
 if [ -f "$HOME/.laptop.local" ]; then
   fancy_echo "Running your customizations from ~/.laptop.local ..."
