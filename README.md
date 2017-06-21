@@ -15,6 +15,7 @@ We support:
 * OS X Mavericks (10.9)
 * OS X Yosemite (10.10)
 * OS X El Capitan (10.11)
+* OS X Sierra (10.12)
 
 Older versions may work but aren't regularly tested. Bug reports for older
 versions are welcome.
@@ -25,7 +26,7 @@ Install
 Download, review, then execute the script:
 
 ```sh
-curl --remote-name https://raw.githubusercontent.com/thoughtbot/laptop/master/mac
+curl --remote-name https://raw.githubusercontent.com/thinksaydo/laptop/master/mac
 less mac
 sh mac 2>&1 | tee ~/mac.log
 ```
